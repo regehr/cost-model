@@ -11,6 +11,8 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 # you will need to enable C++11 support
 # for your compiler.
 
+set(CMAKE_CXX_FLAGS "-std=c++11 -fno-rtti -Wall")
+
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
@@ -22,4 +24,4 @@ add_executable(cost cost.cpp)
 llvm_map_components_to_libnames(llvm_libs support core irreader)
 
 # Link against LLVM libraries
-target_link_libraries(simple-tool ${llvm_libs})
+target_link_libraries(cost ${llvm_libs})
