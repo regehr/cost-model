@@ -53,8 +53,9 @@ int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv, "llvm IR cost estimation generator\n");
 
   llvm::Module *M;
-  //generate(M);
-  //output(M);
+
+  // for each function in the module, print a weighted list of components that it contains
+  // TODO: figure out how to represent additional structure
 
   return 0;
 }
