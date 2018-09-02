@@ -14,6 +14,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Analysis/CallGraphSCCPass.h"
+#include "llvm/Bitcode/BitcodeReader.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
@@ -48,11 +49,30 @@
 #include <unistd.h>
 #include <vector>
 
-int main(int argc, char **argv) {
-  llvm::PrettyStackTraceProgram X(argc, argv);
-  llvm::cl::ParseCommandLineOptions(argc, argv, "llvm IR cost estimation generator\n");
+using namespace llvm;
 
-  llvm::Module *M;
+static ExitOnError ExitOnErr;
+
+static cl::opt<std::string>
+InputFilename(cl::Positional, cl::desc("<input bitcode file>"),
+              cl::init("-"), cl::value_desc("filename"));
+
+static std::unique_ptr<Module> openInputFile(LLVMContext &Context) {
+  std::unique_ptr<MemoryBuffer> MB =
+      ExitOnErr(errorOrToExpected(MemoryBuffer::getFileOrSTDIN(InputFilename)));
+  std::unique_ptr<Module> M =
+      ExitOnErr(getOwningLazyBitcodeModule(std::move(MB), Context,
+                                           /*ShouldLazyLoadMetadata=*/true));
+  ExitOnErr(M->materializeAll());
+  return M;
+}
+
+int main(int argc, char **argv) {
+  PrettyStackTraceProgram X(argc, argv);
+  cl::ParseCommandLineOptions(argc, argv, "llvm IR cost estimation generator\n");
+
+  LLVMContext Context;
+  std::unique_ptr<Module> M = openInputFile(Context);
 
   // for each function in the module, print a weighted list of components that it contains
   // TODO: figure out how to represent additional structure
