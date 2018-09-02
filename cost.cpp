@@ -67,17 +67,49 @@ static std::unique_ptr<Module> openInputFile(LLVMContext &Context) {
   return M;
 }
 
-static int check(Module &M) {
-  if (llvm::verifyModule(M)) {
+static int indexInst(Instruction &I) {
+  switch (I.getOpcode()) {
+  case Instruction::Add:
+  case Instruction::Sub:
+    return 0;
+
+  case Instruction::Mul:
     return 1;
+
+  case Instruction::SDiv:
+  case Instruction::UDiv:
+    return 2;
+
+  case Instruction::Shl:
+  case Instruction::AShr:
+  case Instruction::LShr:
+    return 3;
+
+  case Instruction::Load:
+    return 4;
+
+  case Instruction::Store:
+    return 5;
+
+  case Instruction::Alloca:
+    return 6;
+
+  case Instruction::Call:
+    return 7;
+
+  default:
+    llvm::outs() << "unhandled instruction: " << I << "\n";
   }
-  llvm::outs() << "module: " << M.getName() << "\n";
+}
+
+static int check(Module &M) {
+  if (llvm::verifyModule(M))
+    report_fatal_error("module didn't verify");
   for (auto &F : M) {
-    llvm::outs() << "function " << F.getName() << " \n";
+    // llvm::outs() << "  function: " << F.getName() << " \n";
     for (auto &B : F) {
-      llvm::outs() << "block\n";
       for (auto &I : B) {
-        llvm::outs() << "instruction\n";
+        int i = indexInst(I);
       }
     }
   }
