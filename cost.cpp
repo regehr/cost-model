@@ -67,40 +67,8 @@ static std::unique_ptr<Module> openInputFile(LLVMContext &Context) {
   return M;
 }
 
-static int indexInst(Instruction &I) {
-  switch (I.getOpcode()) {
-  case Instruction::Add:
-  case Instruction::Sub:
-    return 0;
-
-  case Instruction::Mul:
-    return 1;
-
-  case Instruction::SDiv:
-  case Instruction::UDiv:
-    return 2;
-
-  case Instruction::Shl:
-  case Instruction::AShr:
-  case Instruction::LShr:
-    return 3;
-
-  case Instruction::Load:
-    return 4;
-
-  case Instruction::Store:
-    return 5;
-
-  case Instruction::Alloca:
-    return 6;
-
-  case Instruction::Call:
-    return 7;
-
-  default:
-    llvm::outs() << "unhandled instruction: " << I << "\n";
-  }
-}
+// TODO:
+// figure out how to represent additional structure
 
 static int check(Module &M) {
   if (llvm::verifyModule(M))
@@ -109,15 +77,13 @@ static int check(Module &M) {
     // llvm::outs() << "  function: " << F.getName() << " \n";
     for (auto &B : F) {
       for (auto &I : B) {
-        int i = indexInst(I);
+        auto Op = I.getOpcode();
+        // TODO add to map
       }
     }
   }
   return 0;
 }
-
-  // for each function in the module, print a weighted list of components that it contains
-  // TODO: figure out how to represent additional structure
 
 int main(int argc, char **argv) {
   PrettyStackTraceProgram X(argc, argv);
