@@ -57,14 +57,16 @@ static cl::opt<std::string>
 InputFilename(cl::Positional, cl::desc("<input bitcode file>"),
               cl::init("-"), cl::value_desc("filename"));
 
-static std::unique_ptr<Module> openInputFile(LLVMContext &Context) {
+static Module* openInputFile(LLVMContext &Context) {
   std::unique_ptr<MemoryBuffer> MB =
       ExitOnErr(errorOrToExpected(MemoryBuffer::getFileOrSTDIN(InputFilename)));
   std::unique_ptr<Module> M =
       ExitOnErr(getOwningLazyBitcodeModule(std::move(MB), Context,
                                            /*ShouldLazyLoadMetadata=*/true));
   ExitOnErr(M->materializeAll());
-  return M;
+  if (!M.get())
+    report_fatal_error("Bitcode did not read correctly");
+  return M.get();
 }
 
 int main(int argc, char **argv) {
@@ -72,7 +74,21 @@ int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv, "llvm IR cost estimation generator\n");
 
   LLVMContext Context;
-  std::unique_ptr<Module> M = openInputFile(Context);
+  Module *M = openInputFile(Context);
+
+  bool b = llvm::verifyModule(*M);
+  llvm::outs() << b << "\n";
+
+  llvm::outs() << "module: " << M->getName() << "\n";
+  for (auto &F : *M) {
+    llvm::outs() << "function " << F.getName() << " \n";
+    for (auto &B : F) {
+      llvm::outs() << "block\n";
+      for (auto &I : B) {
+        llvm::outs() << "instruction\n";
+      }
+    }
+  }
 
   // for each function in the module, print a weighted list of components that it contains
   // TODO: figure out how to represent additional structure
