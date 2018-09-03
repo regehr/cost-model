@@ -69,12 +69,16 @@ static std::unique_ptr<Module> openInputFile(LLVMContext &Context) {
 
 // TODO:
 // figure out how to represent additional structure
+// bitwidths
+// constant argument
+// instruction pairs / triples
 
 static int check(Module &M) {
   if (llvm::verifyModule(M))
     report_fatal_error("module didn't verify");
   for (auto &F : M) {
     // llvm::outs() << "  function: " << F.getName() << " \n";
+    std::map<unsigned, int> Insts;
     for (auto &B : F) {
       for (auto &I : B) {
         auto Op = I.getOpcode();
