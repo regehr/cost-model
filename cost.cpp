@@ -49,15 +49,15 @@
 #include <unistd.h>
 #include <vector>
 
+static const int MaxInsns = 10;
+
 using namespace llvm;
 
 static ExitOnError ExitOnErr;
 
-static cl::opt<std::string>
-InputFilename(cl::Positional, cl::desc("<input bitcode file>"),
-              cl::init("-"), cl::value_desc("filename"));
+static cl::list<std::string> InputFileNames(cl::Positional, cl::desc("<Input files>"), cl::OneOrMore);
 
-static std::unique_ptr<Module> openInputFile(LLVMContext &Context) {
+static std::unique_ptr<Module> openInputFile(LLVMContext &Context, StringRef InputFilename) {
   std::unique_ptr<MemoryBuffer> MB =
       ExitOnErr(errorOrToExpected(MemoryBuffer::getFileOrSTDIN(InputFilename)));
   std::unique_ptr<Module> M =
@@ -78,10 +78,12 @@ static int check(Module &M) {
     report_fatal_error("module didn't verify");
   for (auto &F : M) {
     std::map<unsigned, int> Insts;
+    int Count = 0;
     for (auto &B : F) {
       for (auto &I : B) {
+        Count++;
         auto Op = I.getOpcode();
-	auto ret = Insts.insert(std::pair<unsigned, int>(Op, 0));
+	auto ret = Insts.insert(std::pair<unsigned, int>(Op, 1));
 	if (!ret.second) {
 	  int prev = ret.first->second;
 	  Insts.erase(Op);
@@ -91,9 +93,11 @@ static int check(Module &M) {
 	}
       }
     }
-    llvm::outs() << "function: " << F.getName() << "\n";
-    for (auto &I : Insts) {
-      llvm::outs() << "  " << Instruction::getOpcodeName(I) << "\n";
+    if (Count <= MaxInsns) {
+      llvm::outs() << "function: " << F.getName() << "\n";
+      for (auto &I : Insts) {
+        llvm::outs() << "  " << Instruction::getOpcodeName(I.first) << " " << I.second << "\n";
+      }
     }
   }
   return 0;
@@ -104,11 +108,13 @@ int main(int argc, char **argv) {
   cl::ParseCommandLineOptions(argc, argv, "llvm IR cost estimation generator\n");
 
   LLVMContext Context;
-  std::unique_ptr<Module> M = openInputFile(Context);
-  if (!M.get()) {
-    llvm::report_fatal_error("Bitcode did not read correctly");
+  for (auto InputFileName : InputFileNames) {
+    std::unique_ptr<Module> M = openInputFile(Context, InputFileName);
+    if (!M.get()) {
+      llvm::report_fatal_error("Bitcode did not read correctly");
+    }
+    int ret = check(*(M.get()));
   }
-  int ret = check(*(M.get()));
 
-  return ret;
+  return 0;
 }
