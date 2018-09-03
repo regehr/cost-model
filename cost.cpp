@@ -77,13 +77,23 @@ static int check(Module &M) {
   if (llvm::verifyModule(M))
     report_fatal_error("module didn't verify");
   for (auto &F : M) {
-    // llvm::outs() << "  function: " << F.getName() << " \n";
     std::map<unsigned, int> Insts;
     for (auto &B : F) {
       for (auto &I : B) {
         auto Op = I.getOpcode();
-        // TODO add to map
+	auto ret = Insts.insert(std::pair<unsigned, int>(Op, 0));
+	if (!ret.second) {
+	  int prev = ret.first->second;
+	  Insts.erase(Op);
+	  auto ret2 = Insts.insert(std::pair<unsigned, int>(Op, prev + 1));
+	  if (!ret2.second)
+	    llvm::report_fatal_error("map");
+	}
       }
+    }
+    llvm::outs() << "function: " << F.getName() << "\n";
+    for (auto &I : Insts) {
+      llvm::outs() << "  " << Instruction::getOpcodeName(I) << "\n";
     }
   }
   return 0;
